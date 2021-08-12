@@ -247,12 +247,12 @@ class MainWindow(QtWidgets.QMainWindow):
        
         codedLb = QtWidgets.QLabel(dialog)
         codedLb.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        codedLb.setText("Ücretsiz olarak yayınladığım Binance NFT marketinde istediğiniz \nMysteryBox bulma programı. Ufakta olsa işinize yarar umarım.\nBağış yapmak isteyenler için USDT TRC20 cüzdanı: \nTAXZUus2E5zWDuKph3pk7Tk3ajEhLRpaMa\nCoded By GALL3X")
+        codedLb.setText("Ücretsiz olarak yayınladığım Binance NFT marketinde istediğiniz \nMysteryBox bulma programı. Ufakta olsa işinize yarar umarım.\nBağış yapmak isteyenler için USDT TRC20 cüzdanı: \nTAXZUus2E5zWDuKph3pk7Tk3ajEhLRpaMa\nBEP20 cüzdanı:\n0x196eE6eE93602907b3Be2E26c215838EA2d3cD35\nCoded By GALL3X")
 
         verticalL.addWidget(codedLb)
 
         dialog.setLayout(verticalL)
-        dialog.resize(350,100)
+        dialog.resize(400,150)
         dialog.setFixedSize(dialog.width(),dialog.height())
         dialog.show()
 
