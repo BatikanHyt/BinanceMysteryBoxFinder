@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>577</width>
-    <height>655</height>
+    <width>647</width>
+    <height>634</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -55,6 +55,29 @@
              <double>0.100000000000000</double>
             </property>
            </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <widget class="QLabel" name="l_oto">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Oto Aç    </string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDoubleSpinBox" name="db_oto"/>
           </item>
          </layout>
         </item>
@@ -162,6 +185,11 @@
       </column>
       <column>
        <property name="text">
+        <string>ZAMAN</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
         <string>LINK</string>
        </property>
       </column>
@@ -181,7 +209,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>577</width>
+     <width>647</width>
      <height>21</height>
     </rect>
    </property>

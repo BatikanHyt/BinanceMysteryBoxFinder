@@ -4,7 +4,7 @@ import sys
 import json
 import asyncio
 import aiohttp
-import time
+import time, datetime
 import webbrowser
 class BoxData():
     def __init__(self):
@@ -27,6 +27,28 @@ class QCustomTableWidgetItem (QtWidgets.QTableWidgetItem):
         else:
             return QtGui.QTableWidgetItem.__lt__(self, other)
 
+class QDateItem(QtWidgets.QTableWidgetItem):
+    def __init__ (self, value):
+        super(QDateItem, self).__init__(str('%s' % value))
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_date)
+
+    def update_date(self):
+        data = int(self.data(QtCore.Qt.UserRole))
+        if data > 0:
+            data = data - 1
+            self.setData(QtCore.Qt.UserRole, data) 
+            self.setData(QtCore.Qt.EditRole, str(datetime.timedelta(seconds=data)))
+            
+
+    def __lt__ (self, other):
+        if (isinstance(other, QDateItem)):
+            selfDataValue  = int(self.data(QtCore.Qt.UserRole))
+            otherDataValue = int(other.data(QtCore.Qt.UserRole))
+            return selfDataValue < otherDataValue
+        else:
+            return QtGui.QTableWidgetItem.__lt__(self, other)
+
 class Worker(QtCore.QThread):
     boxes_ready = QtCore.pyqtSignal(object)
     def __init__(self):
@@ -39,8 +61,8 @@ class Worker(QtCore.QThread):
         self.box_request_body = {
             "category" : 0, #Mystery Box
             "keyword" : 0, #Search Key
-            "orderBy" : "list_time", 
-            "orderType" : -1, #Latest-earliest
+            "orderBy" : "amount_sort", 
+            "orderType" : 1, #Low-high
             "page" : 1,
             "rows" : 100
         }
@@ -82,13 +104,14 @@ class Worker(QtCore.QThread):
                 try:
                     self.box_request_body["page"] = page_start
                     print("Iteration, ", page_start)
+                    price_reached = False
                     async with session.post(self.nft_api,json=self.box_request_body) as resp:
                         data = await resp.json()
 
                         if "total" not in data["data"] or data["data"]["total"] == 0:
                             break
                         data = data["data"]["rows"]
-
+                        current_timestamp = time.time()
                         for box_json in data:
                             #Check if we only search boxes.Mystery boxes have nftType = 2
                             if self.box_to_search.box_only and box_json["nftType"] != 2:
@@ -103,19 +126,28 @@ class Worker(QtCore.QThread):
                                 price = amount
                                 coin = "BUSD"
                                 link = self.binance_uri_generator(box_json["productId"])
-                                item_list.append((price,coin,link))
+                                end_time = box_json["setEndTime"] / 1000
+                                end_timestamp = int(end_time - current_timestamp) if self.box_to_search.auction_on else 0
+                                item_list.append((price,coin,end_timestamp,link))
                             #Check if bnb on
                             elif box_json["currency"] == "BNB" and self.box_to_search.bnb_on and amount * self.bnbbusd <= self.box_to_search.max_price:
                                 price = amount * self.bnbbusd
                                 coin = "BNB"
                                 link = self.binance_uri_generator(box_json["productId"])
-                                item_list.append((price,coin,link))
+                                end_time = box_json["setEndTime"] / 1000
+                                end_timestamp = int(end_time - current_timestamp) if self.box_to_search.auction_on else 0
+                                item_list.append((price,coin,end_timestamp,link))
                             #Check if eth on
                             elif box_json["currency"] == "ETH" and self.box_to_search.eth_on and amount * self.ethbusd <= self.box_to_search.max_price:
                                 price = amount * self.ethbusd
                                 coin = "ETH"
                                 link = self.binance_uri_generator(box_json["productId"])
-                                item_list.append((price,coin,link))
+                                end_time = box_json["setEndTime"] / 1000
+                                end_timestamp = int(end_time - current_timestamp) if self.box_to_search.auction_on else 0
+                                item_list.append((price,coin,end_timestamp,link))
+                            
+                            if box_json["currency"] == "BUSD" and amount > self.box_to_search.max_price:
+                                price_reached = True
 
                             #Pass to table
                             if len(item_list) >= 10:
@@ -127,7 +159,8 @@ class Worker(QtCore.QThread):
                             self.boxes_ready.emit(set(item_list))
                             item_list.clear()
 
-
+                    if price_reached:
+                        break
                     page_start += 1
                     time.sleep(0.05)
                 except Exception as e:
@@ -158,7 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.cb_box_list.insertItems(0, self.json_data.keys())
 
     def open_link(self,item):
-        if item.column() == 2:
+        if item.column() == 3:
             webbrowser.open(item.text())
 
     @QtCore.pyqtSlot(bool)
@@ -184,17 +217,27 @@ class MainWindow(QtWidgets.QMainWindow):
         for item in items:
             price = item[0]
             symbol = item[1]
-            link = item[2]
+            time = item[2]
+            link = item[3]
 
             self.ui.tableWidget.insertRow(0)
             self.ui.tableWidget.setItem(0, 0, QCustomTableWidgetItem(price))
             self.ui.tableWidget.setItem(0, 1, QtWidgets.QTableWidgetItem(symbol))
-            self.ui.tableWidget.setItem(0, 2, QtWidgets.QTableWidgetItem(link))
+            dateitem = QDateItem(str(datetime.timedelta(seconds=time)))
+            dateitem.setData(QtCore.Qt.UserRole, time)
+            self.ui.tableWidget.setItem(0, 2, dateitem)
+            self.ui.tableWidget.setItem(0, 3, QtWidgets.QTableWidgetItem(link))
+
+            if self.ui.db_oto.value() >= price:
+                webbrowser.open(link)
 
     def on_worker_done(self):
         self.ui.tableWidget.setSortingEnabled(True)
         self.ui.pb_search.setText("Arama Yap")
         self.ui.pb_search.setEnabled(True)
+        if self.ui.cb_auction.isChecked():
+            for i in range(self.ui.tableWidget.rowCount()):
+                self.ui.tableWidget.item(i, 2).timer.start(1000)
 
     @QtCore.pyqtSlot(bool)
     def on_actionAbout_triggered(self,check):
