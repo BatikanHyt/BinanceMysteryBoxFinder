@@ -105,6 +105,8 @@ class Worker(QtCore.QThread):
                     self.box_request_body["page"] = page_start
                     print("Iteration, ", page_start)
                     price_reached = False
+                    headers = {"Clienttype":"web",
+                                "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36"}
                     async with session.post(self.nft_api,json=self.box_request_body) as resp:
                         data = await resp.json()
 
